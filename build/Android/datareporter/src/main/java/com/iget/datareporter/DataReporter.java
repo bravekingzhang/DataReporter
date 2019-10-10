@@ -78,7 +78,7 @@ public class DataReporter {
     public static native void push(long nativeReporter, byte[] data);
 
 
-    /**
+    /**uploadSucess
      * 上报成功后调用该方法
      *
      * @param nativeReporter 由makeReporter返回的值
