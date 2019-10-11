@@ -4,10 +4,12 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 
+import com.google.gson.GsonBuilder;
 import com.iget.datareporter.DataReporter;
 import com.iget.datareporter.IReport;
 
-import java.util.Random;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 
 public class NetPost implements IReport {
 
@@ -26,39 +28,43 @@ public class NetPost implements IReport {
 
     @Override
     public void upload(final long key, final byte[][] data) {
-
         //模拟网络上报
         mUiHandler.postDelayed(new Runnable() {
             @Override
             public void run() {
-
-                int min = 0;
-                int max = 10;
-                Random random = new Random();
-                int num = random.nextInt(max) % (max - min + 1) + min;
-
-                //随机定义一个数值5 来模拟网络失败的情况
-                if (num != 5) {
-                    StringBuffer stringBuffer = new StringBuffer();
-                    for (int i = 0; i < data.length; i++) {
-                        stringBuffer.append(data[i]);
-                    }
-                    Log.d("DataReporter:data_", stringBuffer.toString());
-
-                    synchronized (lock) {
-                        if (mNativeReporter == 0) {
-                            return;
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                try {
+                    if (data != null) {
+                        for (int i = 0; i < data.length; i++) {
+                            if (data[i] != null) {
+                                out.write(data[i]);
+                            }
                         }
-                        DataReporter.uploadSucess(mNativeReporter, key);
-                    }
-                } else {
-                    synchronized (lock) {
-                        if (mNativeReporter == 0) {
-                            return;
+                        IssueWrap issue = new GsonBuilder().create().fromJson(out.toString(), IssueWrap.class);
+                        if (issue.getTag().equals(com.tencent.matrix.resource.config.SharePluginInfo.TAG_PLUGIN)) {
+                            // TODO: 2019/10/11 更具类型调用不同的接口上报数据
+                        } else if (issue.getTag().equals(com.tencent.matrix.trace.config.SharePluginInfo.TAG_PLUGIN)) {
+
+                        } else if (issue.getTag().equals(com.tencent.matrix.trace.config.SharePluginInfo.TAG_PLUGIN_EVIL_METHOD)) {
+
+                        } else if (issue.getTag().equals(com.tencent.matrix.trace.config.SharePluginInfo.TAG_PLUGIN_FPS)) {
+
+                        } else if (issue.getTag().equals(com.tencent.matrix.trace.config.SharePluginInfo.TAG_PLUGIN_STARTUP)) {
+
+                        } else if (issue.getTag().equals(com.tencent.matrix.iocanary.config.SharePluginInfo.TAG_PLUGIN)) {
+
                         }
-                        DataReporter.uploadFailed(mNativeReporter, key);
-                        //DataReporter.reaWaken(mNativeReporter);
+                        Log.d("DataReporter:data_", issue.toString());
+                        out.close();
                     }
+                } catch (IOException e) {
+
+                }
+                synchronized (lock) {
+                    if (mNativeReporter == 0) {
+                        return;
+                    }
+                    DataReporter.uploadSucess(mNativeReporter, key);
                 }
             }
         }, 200);
